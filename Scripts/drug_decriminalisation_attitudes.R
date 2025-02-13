@@ -8,7 +8,7 @@ library(readxl)
 # HARDSOFT:MORALITY are 9 Likert questions (where 5 means favour decriminalisation)
 # RESOURCES:OTHERNOCONCERN select all question about no concern
 # CRIME RATE:OTHERCONCERN select all question about concern
-# LAW is decriminalisation question explicitly asked (Likert)
+# LAW is explicitly asked decriminalisation question(Likert)
 # WORRIED? is concern about drug decriminalisation 
 
 #Aim
@@ -55,8 +55,7 @@ all_data_amended <- all_data_amended %>% select(!starts_with("Favourability"))
 #don't need ID column any more
 all_data_amended <- all_data_amended %>% select(AGE:WORRIED)
 
-#lots of ethnicities - probably not enough to analyse / compare
-#have demographics coded/not coded for visualisations
+#check datatypes
 glimpse(all_data_amended)
 
 #everything should be a factor instead of a double
@@ -115,7 +114,7 @@ all_data_amended$EDUCATIONRAW <- as.factor(
     all_data_amended$EDUCATION == "7" ~ "PhD"
   ))
 
-#mostly undergrads, only a few PhD's
+#mostly undergrads, only a few PhD's, OK spread
 plot(all_data_amended$EDUCATION, xlab = "Education", ylab = "Participants",
      main = "Education Breakdown")
 
@@ -132,11 +131,46 @@ all_data_amended$LEANINGRAW <- as.factor(
 plot(all_data_amended$LEANINGRAW, xlab = "Political Leaning", ylab = "Participants",
      main = "Political Leaning Breakdown")
 
-#can't be 100% sure of order because not in data dictionary
-# but have political leaning so this will suffice
+#can't be 100% sure of party order because not in data dictionary
+# but have political leaning so this will suffice, remove party
 plot(all_data_amended$PARTY, xlab = "Political Party", ylab = "Participants",
      main = "Political Party Breakdown")
 
 all_data_amended <- all_data_amended %>% select(!PARTY)
 
+#Exploration --------------------
+#how worried are participants about drug decriminalisation, more not concerned
+ggplot(data = all_data_amended, aes(x = WORRIED)) +
+  geom_bar() +
+  labs(x = "Worried", 
+       y = "Participants",
+       title = "Drug Decriminalisation Concern") +
+  scale_x_discrete(labels = c("Concerned", "Neutral", "Not concerned")) +
+  theme_bw()
+
+#what do participants think about the law, more favour liberalisation
+ggplot(data = all_data_amended, aes(x = LAW)) +
+  geom_bar() +
+  labs(x = NULL, 
+       y = "Participants",
+       title = "Opinion of Drugs Law") +
+  scale_x_discrete(labels = c("Tougher drugs law", "Same drugs law", "Neutral",
+                              "Some drugs decriminalised", "All drugs decriminalised")) +
+  theme_bw()
+
+#will be interesting to see if LAW and WORRIED correlate
+#expect 1/2 law to map to 1 concern, 3 law to 2 concern, 4/5 law to 3 concern
+#100% stacked bar
+ggplot(data = all_data_amended, aes(x = LAW, fill = WORRIED)) +
+  geom_bar(position = "fill") +
+  labs(x = NULL, 
+       y = "Participant %", 
+       title = "Comparing Drug Law Opinion to Decriminalisation Concern",
+       fill = NULL) +
+  scale_fill_manual(labels = c("Concerned", "Neutral", "Not concerned"),
+                     values = c("Orange", "Grey",  "Blue")) +
+  scale_x_discrete(labels = c("Tougher drugs law", "Same drugs law", "Neutral",
+                              "Some drugs decriminalised", "All drugs decriminalised")) +
+  theme_bw() +
+  theme(legend.position="top")
 
