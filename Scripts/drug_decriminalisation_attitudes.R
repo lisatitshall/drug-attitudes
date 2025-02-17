@@ -168,9 +168,36 @@ ggplot(data = all_data_amended, aes(x = LAW, fill = WORRIED)) +
        title = "Comparing Drug Law Opinion to Decriminalisation Concern",
        fill = NULL) +
   scale_fill_manual(labels = c("Concerned", "Neutral", "Not concerned"),
-                     values = c("Orange", "Grey",  "Blue")) +
+                     values = c("DarkRed", "Grey",  "DarkBlue")) +
   scale_x_discrete(labels = c("Tougher drugs law", "Same drugs law", "Neutral",
                               "Some drugs decriminalised", "All drugs decriminalised")) +
   theme_bw() +
   theme(legend.position="top")
+
+#how do demographics affect opinions?
+#age first, generally older people more concerned
+ggplot(data = all_data_amended, aes(x = AGERAW, fill = WORRIED)) +
+  geom_bar(position = "fill") +
+  labs(x = NULL, 
+       y = "Participant %", 
+       title = "Decriminalisation Concern by Age",
+       fill = NULL) +
+  scale_fill_manual(labels = c("Concerned", "Neutral", "Not concerned"),
+                    values = c("DarkRed", "Grey",  "DarkBlue")) +
+  theme_bw() +
+  theme(legend.position="top")
+
+#less linear trend, 26-35/56-65 look surprisingly similar
+ggplot(data = all_data_amended, aes(x = AGERAW, fill = LAW)) +
+  geom_bar(position = "fill") +
+  labs(x = NULL, 
+       y = "Participant %", 
+       title = "Drug Law Opinion by Age",
+       fill = NULL) +
+  scale_fill_manual(labels = 
+                      c("Tougher drugs law", "Same drugs law", "Neutral",
+                        "Some drugs decriminalised", "All drugs decriminalised"),
+                    values = c("DarkRed", "Orange", "Grey", "DarkGreen", "DarkBlue")) +
+  theme_bw() +
+  theme(legend.position="right")
 
