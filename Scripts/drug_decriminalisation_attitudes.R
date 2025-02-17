@@ -142,7 +142,7 @@ all_data_amended <- all_data_amended %>% select(!PARTY)
 #how worried are participants about drug decriminalisation, more not concerned
 ggplot(data = all_data_amended, aes(x = WORRIED)) +
   geom_bar() +
-  labs(x = "Worried", 
+  labs(x = NULL, 
        y = "Participants",
        title = "Drug Decriminalisation Concern") +
   scale_x_discrete(labels = c("Concerned", "Neutral", "Not concerned")) +
