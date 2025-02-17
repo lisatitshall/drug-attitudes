@@ -21,4 +21,13 @@ Two explicit questions were asked to investigate participant's attitudes towards
 The following bar chart shows how responses to both questions compared. As we'd expect participants who favoured a more liberal drug policy were less likely to be concerned about drug
 decriminalisation. However, this wasn't a clear cut relationship so it is worth investigating responses to both questions. 
 
-![image](https://github.com/user-attachments/assets/705be4f7-70bc-4dc7-b8d3-8057b647669c)
+![image](https://github.com/user-attachments/assets/5315f7ca-bf88-4885-8aa7-81ee42873a3d)
+
+### [2] Demographics affected attitudes to drug decriminalisation
+The clearest demographic trends were observed for age and education level. The bar charts below show that participants with a higher education level were less concerned about drug decriminalisation and older participants were more concerned. 
+
+![image](https://github.com/user-attachments/assets/6c1b1f8c-53f2-486d-ad7f-3b33dc4e1e65)
+
+![image](https://github.com/user-attachments/assets/aa754c60-a52d-480c-8880-292baed40159)
+
+There were no significant differences between genders. For political leaning the responses of left leaning participants differed from apolitical, centre and right wing participants. The other three groups were fairly similar. Note: in these bar charts responses are shown as a proportion of 100% for ease of comparison but some groups e.g. 66+ were less well represented. 
