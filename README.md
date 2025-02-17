@@ -16,7 +16,7 @@ Two explicit questions were asked to investigate participant's attitudes towards
 
 ![image](https://github.com/user-attachments/assets/dcfc1068-5490-4f99-acf7-8d099d5790e9)
 
-![image](https://github.com/user-attachments/assets/7674e7ed-5851-4f9a-bf18-fd70e56de014)
+![image](https://github.com/user-attachments/assets/5e9313ee-9333-4d86-ac3d-05d74a5c5e79)
 
 The following bar chart shows how responses to both questions compared. As we'd expect participants who favoured a more liberal drug policy were less likely to be concerned about drug
 decriminalisation. However, this wasn't a clear cut relationship so it is worth investigating responses to both questions. 
