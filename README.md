@@ -10,6 +10,7 @@ People from the UK responded to a 19 question survey about their attitudes towar
 - Step 3: Tidied data and removed rows with nulls
 - Step 4: Investigated demographics and added decoded demographic columns
 - Step 5: Tested whether demographic groups had different attitudes to drug policy
+- Step 6: Conducted Multiple Correspondence Analysis to understand which survey questions and demographics are linked
 
 ## Findings
 ### [1] Survey participants favoured a more liberal drug policy
@@ -39,3 +40,13 @@ Fisher Exact tests were conducted to test the relationship between demographics 
 
 Most Fisher Exact p-values were statistically significant at the 0.05 level (except gender). The Cramer V values showed a borderline weak/moderate relationship between drug policy and education level and moderate relationships between drug policy and age/political leaning. 
 
+### [3] Two dimensions are insufficient to describe survey data variation
+The following were the findings after conducting Multiple Correspondence Analysis:
+- 2 dimensions only explains 20% of the data variation
+- Drug decriminalisation concern was highly correlated with the first principal component (see first chart below, variable WORRIED)
+- Participants age 66+ were more likely to answer that they strongly agree police should intervene when people are taking drugs and that they strongly disagree that the government should introduce more lenient drug policy (see upper right quadrant in second chart below)
+- Participants who were concerned about drug decriminalisation were more likely to be concerned that more lenient drug policy will result in higher crime and addiction rates (variables WORRIED_1, CRIMERATE_1 and ADDICTION_1 in upper right quadrant of second chart) 
+
+![image](https://github.com/user-attachments/assets/08b35f29-e94c-4de3-a5df-3d92acfd06a9)
+
+![image](https://github.com/user-attachments/assets/c096a6e1-7fee-49d2-813d-7b1e6530fe10)
