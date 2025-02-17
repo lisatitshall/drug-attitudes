@@ -2,6 +2,8 @@
 library(tidyverse)
 library(tidymodels)
 library(readxl)
+#Cramer's V
+library(sjstats)
 
 #Data Notes
 # AGE:PARTY columns are demographics questions
@@ -200,4 +202,188 @@ ggplot(data = all_data_amended, aes(x = AGERAW, fill = LAW)) +
                     values = c("DarkRed", "Orange", "Grey", "DarkGreen", "DarkBlue")) +
   theme_bw() +
   theme(legend.position="right")
+
+#gender, not that different
+ggplot(data = all_data_amended %>% filter(GENDERRAW %in% c("Female", "Male")), 
+       aes(x = GENDERRAW, fill = WORRIED)) +
+  geom_bar(position = "fill") +
+  labs(x = NULL, 
+       y = "Participant %", 
+       title = "Decriminalisation Concern by Gender",
+       fill = NULL) +
+  scale_fill_manual(labels = c("Concerned", "Neutral", "Not concerned"),
+                    values = c("DarkRed", "Grey",  "DarkBlue")) +
+  theme_bw() +
+  theme(legend.position="top")
+
+ggplot(data = all_data_amended  %>% filter(GENDERRAW %in% c("Female", "Male")), 
+       aes(x = GENDERRAW, fill = LAW)) +
+  geom_bar(position = "fill") +
+  labs(x = NULL, 
+       y = "Participant %", 
+       title = "Drug Law Opinion by Gender",
+       fill = NULL) +
+  scale_fill_manual(labels = 
+                      c("Tougher drugs law", "Same drugs law", "Neutral",
+                        "Some drugs decriminalised", "All drugs decriminalised"),
+                    values = c("DarkRed", "Orange", "Grey", "DarkGreen", "DarkBlue")) +
+  theme_bw() +
+  theme(legend.position="right")
+
+#education level, v.clear trend
+ggplot(data = all_data_amended, aes(x = fct_reorder2(EDUCATIONRAW, EDUCATION, EDUCATION, .desc = FALSE),
+                                    fill = WORRIED)) +
+  geom_bar(position = "fill") +
+  labs(x = NULL, 
+       y = "Participant %", 
+       title = "Decriminalisation Concern by Education Level",
+       fill = NULL) +
+  scale_fill_manual(labels = c("Concerned", "Neutral", "Not concerned"),
+                    values = c("DarkRed", "Grey",  "DarkBlue")) +
+  theme_bw() +
+  theme(legend.position="top")
+
+
+ggplot(data = all_data_amended, aes(x = fct_reorder2(EDUCATIONRAW, EDUCATION, EDUCATION, .desc = FALSE), 
+                                     fill = LAW)) +
+  geom_bar(position = "fill") +
+  labs(x = NULL, 
+       y = "Participant %", 
+       title = "Drug Law Opinion by Education Level",
+       fill = NULL) +
+  scale_fill_manual(labels = 
+                      c("Tougher drugs law", "Same drugs law", "Neutral",
+                        "Some drugs decriminalised", "All drugs decriminalised"),
+                    values = c("DarkRed", "Orange", "Grey", "DarkGreen", "DarkBlue")) +
+  theme_bw() +
+  theme(legend.position="right")
+
+#political leaning, left wing a lot different to rest
+
+all_data_amended$LEANINGRAW <- factor(all_data_amended$LEANINGRAW, 
+                                      levels = 
+                                        c("Non political",
+                                          "Left wing",
+                                          "Centre",
+                                          "Right wing"
+                                          ))
+
+ggplot(data = all_data_amended, aes(x = LEANINGRAW, fill = WORRIED)) +
+  geom_bar(position = "fill") +
+  labs(x = NULL, 
+       y = "Participant %", 
+       title = "Decriminalisation Concern by Political Leaning",
+       fill = NULL) +
+  scale_fill_manual(labels = c("Concerned", "Neutral", "Not concerned"),
+                    values = c("DarkRed", "Grey",  "DarkBlue")) +
+  theme_bw() +
+  theme(legend.position="top")
+
+ggplot(data = all_data_amended, aes(x = LEANINGRAW, fill = LAW)) +
+  geom_bar(position = "fill") +
+  labs(x = NULL, 
+       y = "Participant %", 
+       title = "Drug Law Opinion by Political Leaning",
+       fill = NULL) +
+  scale_fill_manual(labels = 
+                      c("Tougher drugs law", "Same drugs law", "Neutral",
+                        "Some drugs decriminalised", "All drugs decriminalised"),
+                    values = c("DarkRed", "Orange", "Grey", "DarkGreen", "DarkBlue")) +
+  theme_bw() +
+  theme(legend.position="right")
+
+#try Chi squared test of independence
+# two categorical variables and independence of groups is fulfilled
+# would need to check expected frequencies are above 1 and 80% of expected
+#  frequencies are above 5
+
+#all of these are significant but are returning error due to low frequencies
+chisq_test(all_data_amended, WORRIED ~ EDUCATION)
+chisq_test(all_data_amended, LAW ~ EDUCATION)
+chisq_test(all_data_amended, WORRIED ~ AGE)
+chisq_test(all_data_amended, LAW ~ AGE)
+#for comparison this one isn't significant
+chisq_test(all_data_amended, WORRIED ~ GENDER)
+
+#try Fisher Exact test instead, all are significant
+fisher1 <- fisher.test(x = all_data_amended$EDUCATION,
+            y = all_data_amended$WORRIED,
+            simulate.p.value = TRUE)
+
+fisher2 <- fisher.test(x = all_data_amended$EDUCATION,
+            y = all_data_amended$LAW,
+            simulate.p.value = TRUE)
+
+
+fisher3 <- fisher.test(x = all_data_amended$AGE,
+            y = all_data_amended$WORRIED,
+            simulate.p.value = TRUE)
+
+fisher4 <- fisher.test(x = all_data_amended$AGE,
+                       y = all_data_amended$LAW,
+                       simulate.p.value = TRUE)
+
+#wonder about political leaning where one group was different
+#yes both p are significant
+
+fisher5 <- fisher.test(x = all_data_amended$LEANING,
+            y = all_data_amended$WORRIED,
+            simulate.p.value = TRUE)
+
+fisher6 <- fisher.test(x = all_data_amended$LEANING,
+                       y = all_data_amended$LAW,
+                       simulate.p.value = TRUE)
+
+fisher7 <- fisher.test(x = all_data_amended$GENDER,
+                       y = all_data_amended$WORRIED,
+                       simulate.p.value = TRUE)
+
+fisher8 <- fisher.test(x = all_data_amended$GENDER,
+                       y = all_data_amended$LAW,
+                       simulate.p.value = TRUE)
+
+
+
+#this version of Cramer's V can use fisher test instead of Chi-square
+# if expected values are too low
+# first two are marginal, second two are moderate, final two moderate
+cramer1 <- cramers_v(WORRIED ~ EDUCATION, data = all_data_amended, 
+          statistics = "cramer")
+
+cramer2 <- cramers_v(LAW ~ EDUCATION, data = all_data_amended, 
+          statistics = "cramer")
+
+cramer3 <- cramers_v(WORRIED ~ AGE, data = all_data_amended, 
+          statistics = "cramer")
+
+cramer4 <- cramers_v(LAW ~ AGE, data = all_data_amended, 
+                     statistics = "cramer")
+
+cramer5 <- cramers_v(WORRIED ~ LEANING, data = all_data_amended, 
+                     statistics = "cramer")
+
+cramer6 <- cramers_v(LAW ~ LEANING, data = all_data_amended, 
+       statistics = "cramer")
+
+cramer7 <- cramers_v(LAW ~ GENDER, data = all_data_amended , 
+                     statistics = "cramer")
+
+cramer8 <- cramers_v(WORRIED ~ GENDER, data = all_data_amended , 
+                     statistics = "cramer")
+
+#put fisher / cramer results in dataframe
+Pairings <- c("Concern/EducationLevel", "DrugPolicy/EducationLevel", 
+            "Concern/Age","DrugPolicy/Age", 
+            "Concern/PoliticalLeaning", "DrugPolicy/PoliticalLeaning",
+            "Concern/Gender", "DrugPolicy/Gender")
+Fisher_exact <- c(fisher1$p.value, fisher2$p.value, fisher3$p.value,
+             fisher4$p.value, fisher5$p.value, fisher6$p.value,
+             fisher7$p.value, fisher8$p.value)
+Cramer_v <- c(cramer1, cramer2, cramer3, cramer4, cramer5, cramer6,
+              cramer7, cramer8)
+
+fisher_cramer_list <- data.frame(Pairings, Fisher_exact, Cramer_v)
+
+fisher_cramer_list$Cramer_v <- round(fisher_cramer_list$Cramer_v, 2)
+fisher_cramer_list$Fisher_exact <- round(fisher_cramer_list$Fisher_exact, 5)
 
