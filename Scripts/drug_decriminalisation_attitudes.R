@@ -4,6 +4,9 @@ library(tidymodels)
 library(readxl)
 #Cramer's V
 library(sjstats)
+#MCA
+library(FactoMineR)
+library(factoextra)
 
 #Data Notes
 # AGE:PARTY columns are demographics questions
@@ -140,7 +143,7 @@ plot(all_data_amended$PARTY, xlab = "Political Party", ylab = "Participants",
 
 all_data_amended <- all_data_amended %>% select(!PARTY)
 
-#Exploration --------------------
+#Demographics Exploration --------------------
 #how worried are participants about drug decriminalisation, more not concerned
 ggplot(data = all_data_amended, aes(x = WORRIED)) +
   geom_bar() +
@@ -386,4 +389,50 @@ fisher_cramer_list <- data.frame(Pairings, Fisher_exact, Cramer_v)
 
 fisher_cramer_list$Cramer_v <- round(fisher_cramer_list$Cramer_v, 2)
 fisher_cramer_list$Fisher_exact <- round(fisher_cramer_list$Fisher_exact, 5)
+
+#Full exploration ------------------------
+#We've seen moderate relationships between age/politics and drug policy,
+#  weak/moderate relationship between education/drug policy and no
+#  link between gender/drug policy
+
+#What about the rest of the answers?
+#reduce dataset to remove repeated demographics and underrepresented genders
+
+all_data_amended_reduced <- all_data_amended %>% 
+  select(AGE:WORRIED) %>% 
+  filter(GENDER %in% c(1, 2)) %>% 
+  relocate(LAW, .after = LEANING) %>% 
+  relocate(WORRIED, .after = LAW) 
+
+#all variables
+#not much variation explained by 2 dimensions
+#worried is highly correlated with first dimension
+#leniency, police and trial are important in first 2 dimensions
+#none of the demographics are highly correlated with first two dimensions
+mca <- MCA(all_data_amended_reduced, quali.sup = 1:6)
+
+#shows different data we can retrieve 
+print(mca)
+
+#this shows how important variables are to each dimension
+View(mca$var$eta2)
+
+#see how much variance is explained by each dimension, not much
+fviz_screeplot(mca, addlabels = TRUE, ylim = c(0,20))
+
+#age 6 and education 7 are far from the origin meaning they 
+# are discriminatory attributes
+# this makes sense as graphs show they had very different
+# views to different age/education groups 
+plot(mca, cex = 0.7, invisible = c("ind"))
+
+#alternative way of plotting biplot, only 10 largest cos2
+#older participants answer 1 to police/leniency
+fviz_mca_var(mca, select.var = list(cos2 = 10), repel = TRUE)
+
+#bar chart of 10 variables most explained by 2 dimensions
+fviz_cos2(mca, choice = "var", axes = 1:2, top = 10)
+
+#summarises the correlation between supplementary variables and dimensions
+mca$quali.sup$eta2
 
