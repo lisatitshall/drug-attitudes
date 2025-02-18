@@ -436,3 +436,48 @@ fviz_cos2(mca, choice = "var", axes = 1:2, top = 10)
 #summarises the correlation between supplementary variables and dimensions
 mca$quali.sup$eta2
 
+#Idea: because worried is highly correlated with first dimension, 
+# use age/political and top 3 contributing to first dim (LENIENCY, TRIAL, POLICE)
+# to predict concern based on 5 variables
+# Try multinomial regression using tidymodels to compare
+
+# Multinomial logistic regression
+
+# split data into test train
+set.seed(1001) 
+split <- initial_split(all_data_amended_reduced, strata = AGE) 
+train <- training(split) 
+test <- testing(split) 
+
+#cross validation for tuning
+train_folds <- vfold_cv(train, v = 5) 
+
+#try these formulas for a start
+formulas <- list(
+  all = recipe(WORRIED ~ LENIENCY + TRIAL + POLICE + LEANING + AGE,
+               data = train) %>% 
+    step_dummy(LENIENCY, TRIAL, POLICE, LEANING, AGE),
+  one_demographic = recipe(WORRIED ~ LENIENCY + TRIAL + POLICE + LEANING, 
+                           data = train) %>% 
+    step_dummy(LENIENCY, TRIAL, POLICE, LEANING),
+  two_questions = recipe(WORRIED ~ LENIENCY + TRIAL + LEANING + AGE,
+                         data = train) %>% 
+    step_dummy(LENIENCY, TRIAL, LEANING, AGE)
+)
+
+#try this model for a start
+glmnet_model <- 
+  multinom_reg(penalty = tune(), mixture = tune()) %>% 
+  set_engine("glmnet")
+
+#define workflow set
+models <- workflow_set(preproc = formulas, models = list(
+  glmnet = glmnet_model
+))
+
+models <- models %>%
+  workflow_map(resamples = train_folds, verbose = TRUE)
+  
+View(collect_metrics(models) %>% filter(.metric == "accuracy"))
+
+
