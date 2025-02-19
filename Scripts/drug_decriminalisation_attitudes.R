@@ -33,6 +33,8 @@ all_data_raw <- inner_join(demographics, concerns,
                            by = c("MEMORABLE ID", "AGE", "GENDER", "EDUCATION", "LEANING", "LAW"), 
                            keep = FALSE )
 
+remove(demographics)
+remove(concerns)
 #rename other columns and ones with unacceptable punctuation
 all_data_raw <- all_data_raw %>% 
   rename("OTHERNOCONCERN" = `OTHER...14`,
@@ -301,12 +303,12 @@ ggplot(data = all_data_amended, aes(x = LEANINGRAW, fill = LAW)) +
 #  frequencies are above 5
 
 #all of these are significant but are returning error due to low frequencies
-chisq_test(all_data_amended, WORRIED ~ EDUCATION)
-chisq_test(all_data_amended, LAW ~ EDUCATION)
-chisq_test(all_data_amended, WORRIED ~ AGE)
-chisq_test(all_data_amended, LAW ~ AGE)
+#chisq_test(all_data_amended, WORRIED ~ EDUCATION)
+#chisq_test(all_data_amended, LAW ~ EDUCATION)
+#chisq_test(all_data_amended, WORRIED ~ AGE)
+#chisq_test(all_data_amended, LAW ~ AGE)
 #for comparison this one isn't significant
-chisq_test(all_data_amended, WORRIED ~ GENDER)
+#chisq_test(all_data_amended, WORRIED ~ GENDER)
 
 #try Fisher Exact test instead, all are significant
 fisher1 <- fisher.test(x = all_data_amended$EDUCATION,
@@ -445,24 +447,30 @@ mca$quali.sup$eta2
 
 # split data into test train
 set.seed(1001) 
-split <- initial_split(all_data_amended_reduced, strata = AGE) 
+split <- initial_split(all_data_amended_reduced, strata = WORRIED) 
 train <- training(split) 
 test <- testing(split) 
 
 #cross validation for tuning
-train_folds <- vfold_cv(train, v = 5) 
+train_folds <- vfold_cv(train, v = 5, strata = WORRIED) 
 
 #try these formulas for a start
 formulas <- list(
   all = recipe(WORRIED ~ LENIENCY + TRIAL + POLICE + LEANING + AGE,
                data = train) %>% 
-    step_dummy(LENIENCY, TRIAL, POLICE, LEANING, AGE),
+    step_dummy(all_nominal_predictors()),
   one_demographic = recipe(WORRIED ~ LENIENCY + TRIAL + POLICE + LEANING, 
                            data = train) %>% 
-    step_dummy(LENIENCY, TRIAL, POLICE, LEANING),
+    step_dummy(all_nominal_predictors()),
   two_questions = recipe(WORRIED ~ LENIENCY + TRIAL + LEANING + AGE,
                          data = train) %>% 
-    step_dummy(LENIENCY, TRIAL, LEANING, AGE)
+    step_dummy(all_nominal_predictors()),
+  two_questions_one_demographic = recipe(WORRIED ~ LENIENCY + TRIAL + LEANING,
+                         data = train) %>% 
+    step_dummy(all_nominal_predictors()),
+  one_question_one_demographic = recipe(WORRIED ~ LENIENCY + LEANING,
+                                         data = train) %>% 
+    step_dummy(all_nominal_predictors())
 )
 
 #try this model for a start
@@ -470,14 +478,80 @@ glmnet_model <-
   multinom_reg(penalty = tune(), mixture = tune()) %>% 
   set_engine("glmnet")
 
+#try these values for penalty and mixture
+penalty_grid <- 10^seq(1, -2, length = 10) %>% as.data.frame() %>%
+  rename("penalty" = ".")
+penalty_grid$mixture <- seq(0, 1, length = 10)
+                            
 #define workflow set
-models <- workflow_set(preproc = formulas, models = list(
-  glmnet = glmnet_model
-))
+workflows <- workflow_set(preproc = formulas, models = list(
+  glmnet = glmnet_model))
 
-models <- models %>%
-  workflow_map(resamples = train_folds, verbose = TRUE)
+#tune across workflows
+workflows <- workflows %>%
+  workflow_map(resamples = train_folds, 
+               verbose = TRUE, 
+               grid = penalty_grid,
+               seed = 1001,
+               metrics = metric_set(accuracy),
+               control = control_grid(
+                 save_workflow = TRUE
+               ))
+
+remove(models)
   
-View(collect_metrics(models) %>% filter(.metric == "accuracy"))
+#have a look at the average accuracy across all folds and workflows
+#View(collect_metrics(models) %>% filter(.metric == "accuracy"))
+
+#best was accuracy around 0.65
+autoplot(workflows)
+
+#rank best of each workflow, 
+#not much difference betweendifferent number of predictors
+View(workflows %>% 
+  rank_results(rank_metric = "accuracy", select_best = TRUE) %>% 
+  filter(.metric == "accuracy"))
+
+#choose simplest model and get tuned parameters
+best_results <- workflows %>%
+  extract_workflow_set_result("all_glmnet") %>% 
+  select_best(metric = "accuracy")
+
+#fit on whole train set to see if assumptions are fulfilled
+
+#fit on test data
+test_results <- 
+  models %>% 
+  extract_workflow("all_glmnet") %>% 
+  finalize_workflow(best_results) %>% 
+  last_fit(split = split)
+
+#60% accuracy on test set
+collect_metrics(test_results)
+
+#plot actual vs predicted
+test_results %>% 
+  collect_predictions() %>%
+  ggplot(aes(x = WORRIED, fill = .pred_class)) +
+  geom_bar() +
+  theme_bw() +
+  labs(x = "Actual concern", fill = "Predicted concern")
+
+#look at predictions vs answers 
+train_augment <- augment(test_results) %>%
+  relocate(WORRIED, .after = .pred_class) %>%
+  relocate(LENIENCY, .after = WORRIED) %>%
+  relocate(TRIAL, .after = LENIENCY) %>%
+  relocate(POLICE, .after = TRIAL) %>%
+  relocate(LEANING, .after = POLICE) %>%
+  relocate(AGE, .after = LEANING)
+
+#To Do
+# understand more about penalty and mixture in multinomial logistic regression
+# understand which other Parsnip models could be used for this problem
+# document the assumptions for multinomial logistic regression
+# document classification metrics in OneNote
+# document new formulas in OneNote
+# add findings to README
 
 
