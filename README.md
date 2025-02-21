@@ -10,7 +10,7 @@ People from the UK responded to a 19 question survey about their attitudes towar
 - Step 3: Tidied data and removed rows with nulls
 - Step 4: Investigated demographics and added decoded demographic columns
 - Step 5: Tested whether demographic groups had different attitudes to drug policy
-- Step 6: Conducted Multiple Correspondence Analysis to understand which survey questions and demographics are linked
+- Step 6: Conducted Multiple Correspondence Analysis to assess important variables
 
 ## Findings
 ### [1] Survey participants favoured a more liberal drug policy
