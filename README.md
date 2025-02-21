@@ -50,3 +50,18 @@ The following were the findings after conducting Multiple Correspondence Analysi
 ![image](https://github.com/user-attachments/assets/08b35f29-e94c-4de3-a5df-3d92acfd06a9)
 
 ![image](https://github.com/user-attachments/assets/c096a6e1-7fee-49d2-813d-7b1e6530fe10)
+
+### [4] Multiple logistic regression on 5 variables has 60% accuracy on test dataset
+We've already seen that Age and Political Leaning are the demographics most strongly correlated with drug decriminalisation opinions. From Multiple Correspondence Analysis we saw the three questions most strongly correlated to the first principal component were Leniency, Trial and Police.
+
+The assumptions for ordinal logistic regression weren't fulfilled (in particular proportional odds). Therefore, multinomial logistic regression was performed. 
+
+The best performing model was the one with all 5 variables. On the test set the accuracy was 60% and kappa was 31% (normalized accuracy to account for class imbalance, this is a fair result but not the best). 
+
+The graph below shows the actual vs predicted values. 
+
+![image](https://github.com/user-attachments/assets/cd6dbf0e-ef45-479c-9b2c-fa2452922ca3)
+
+When we looked at the coefficients of the equations we found the following:
+- Participants least concerned about drug decriminalisation were left wing and disagreed with police involvement in drug offences
+- Participants most concered about drug decriminalisation were older and didn't support a drug decriminalisation trial
