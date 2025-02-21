@@ -7,8 +7,11 @@ library(sjstats)
 #MCA
 library(FactoMineR)
 library(factoextra)
+#tree models parsnip
 library(bonsai)
-
+#ordinal linear regression
+library(MASS)
+library(Hmisc)
 #Data Notes
 # AGE:PARTY columns are demographics questions
 # HARDSOFT:MORALITY are 9 Likert questions (where 5 means favour decriminalisation)
@@ -58,10 +61,10 @@ all_data_amended <- na.omit(all_data_raw)
 
 #remove favourability score for now, not convinced they should include
 # the law question
-all_data_amended <- all_data_amended %>% select(!starts_with("Favourability"))
+all_data_amended <- all_data_amended %>% dplyr::select(!starts_with("Favourability"))
 
 #don't need ID column any more
-all_data_amended <- all_data_amended %>% select(AGE:WORRIED)
+all_data_amended <- all_data_amended %>% dplyr::select(AGE:WORRIED)
 
 #check datatypes
 glimpse(all_data_amended)
@@ -108,7 +111,7 @@ plot(all_data_amended$GENDERRAW, xlab = "Gender", ylab = "Participants",
 plot(all_data_amended$ETHNICITY, xlab = "Ethnicities", ylab = "Participants",
      main = "Ethnicity Breakdown")
 
-all_data_amended <- all_data_amended %>% select(!ETHNICITY)
+all_data_amended <- all_data_amended %>% dplyr::select(!ETHNICITY)
 
 #add education column
 all_data_amended$EDUCATIONRAW <- as.factor(
@@ -144,7 +147,7 @@ plot(all_data_amended$LEANINGRAW, xlab = "Political Leaning", ylab = "Participan
 plot(all_data_amended$PARTY, xlab = "Political Party", ylab = "Participants",
      main = "Political Party Breakdown")
 
-all_data_amended <- all_data_amended %>% select(!PARTY)
+all_data_amended <- all_data_amended %>% dplyr::select(!PARTY)
 
 #Demographics Exploration --------------------
 #how worried are participants about drug decriminalisation, more not concerned
@@ -393,7 +396,7 @@ fisher_cramer_list <- data.frame(Pairings, Fisher_exact, Cramer_v)
 fisher_cramer_list$Cramer_v <- round(fisher_cramer_list$Cramer_v, 2)
 fisher_cramer_list$Fisher_exact <- round(fisher_cramer_list$Fisher_exact, 5)
 
-#Full exploration ------------------------
+#Multiple Correspondence Analysis ------------------------
 #We've seen moderate relationships between age/politics and drug policy,
 #  weak/moderate relationship between education/drug policy and no
 #  link between gender/drug policy
@@ -402,7 +405,7 @@ fisher_cramer_list$Fisher_exact <- round(fisher_cramer_list$Fisher_exact, 5)
 #reduce dataset to remove repeated demographics and underrepresented genders
 
 all_data_amended_reduced <- all_data_amended %>% 
-  select(AGE:WORRIED) %>% 
+  dplyr::select(AGE:WORRIED) %>% 
   filter(GENDER %in% c(1, 2)) %>% 
   relocate(LAW, .after = LEANING) %>% 
   relocate(WORRIED, .after = LAW) 
@@ -444,21 +447,31 @@ mca$quali.sup$eta2
 # to predict concern based on 5 variables
 # Try multinomial regression using tidymodels to compare
 
+#Multinomial logistic regression ---------------------------
+
 # Multinomial logistic regression - can be used for ordinal but will try 
 # ordinal approach as well
 
 #change variables to ordered factors
 all_data_amended_reduced$LENIENCY <- factor(all_data_amended_reduced$LENIENCY, 
-                                            ordered = TRUE)
+                                            ordered = TRUE, 
+                                            levels = c("5", "4", "3", "2","1"))
 
 all_data_amended_reduced$TRIAL <- factor(all_data_amended_reduced$TRIAL,
-                                            ordered = TRUE)
+                                            ordered = TRUE,
+                                         levels = c("5", "4", "3", "2","1"))
 
 all_data_amended_reduced$POLICE <- factor(all_data_amended_reduced$POLICE,
-                                         ordered = TRUE)
+                                         ordered = TRUE, 
+                                         levels = c("5", "4", "3", "2","1"))
 
 all_data_amended_reduced$AGE <- factor(all_data_amended_reduced$AGE,
                                           ordered = TRUE)
+#reverse order of worried factor
+all_data_amended_reduced$WORRIED <- factor(all_data_amended_reduced$WORRIED,
+                                           levels = c("3", "2", "1")
+                                           )
+
 
 # split data into test train
 set.seed(1001) 
@@ -493,7 +506,7 @@ formulas <- list(
     step_ordinalscore(LENIENCY)
 )
 
-#try this model for a start
+#try these models for a start
 glmnet_model <- 
   multinom_reg(penalty = tune(), mixture = tune()) %>% 
   set_engine("glmnet")
@@ -563,7 +576,7 @@ fit2 <- tree_test_results %>%
   extract_fit_parsnip("all_tree")
 
 #this gives the coefficients of the equations
-View(tidy(fit))
+View(tidy(fit) %>% filter(estimate != 0) %>% filter(term != "(Intercept)"))
 
 #this gives all coefficients on the regularization path
 #View(tidy(fit$fit))
@@ -592,5 +605,119 @@ train_augment <- augment(test_results) %>%
 #To Do
 # try ordinal logistic regression with same variables as winning multinomial
 #   model, Parsnip doesn't include this
-# add findings to README
+
+#Ordinal logistic regression ---------------------------
+
+#first assess whether variables are correlated, 
+#need to be uncorrelated to use ordinal logistic regression
+#assess using plots, Chi Square/Fisher(+ Cramer)
+
+#All variables are correlated with each other but some 
+# to a lesser extent
+ggplot(data = all_data_amended, aes(x = AGE, fill = LEANING)) +
+  geom_bar(position = "fill") +
+  labs(x = NULL, 
+       y = "Participant %",
+       fill = NULL) +
+  scale_fill_manual(
+                    values = c("DarkRed", "Orange", "Grey", "DarkGreen", "DarkBlue")) +
+  theme_bw() +
+  theme(legend.position="right")
+
+
+chisq_test(all_data_amended, LEANING ~ AGE)
+fisher.test(x = all_data_amended$LEANING,
+            y = all_data_amended$AGE,
+            simulate.p.value = TRUE)
+cramers_v(LEANING ~ AGE, data = all_data_amended, 
+          statistics = "cramer")
+
+#test proportional odd assumption
+#this calculates the log odds of being greater than or equal to
+# each value of the target variable
+sf <- function(y) {
+  c('Y>=1' = qlogis(mean(y >= 1)),
+    'Y>=2' = qlogis(mean(y >= 2)),
+    'Y>=3' = qlogis(mean(y >= 3)))
+}
+
+#this gives coefficient values without parallel lines assumption
+#for each variable we want to check if the differences between 
+# Y >= 2 and Y>= 3 are the same
+#LENIENCY 1.07, 1.03, 1.43, 0.4 (has -inf value)
+#TRIAL 1.06, 0.49, 2.2, 1.32, 0.52
+#POLICE 1.8, 1.64, 0.8, 0.67, 0
+#AGE 2.1, 0.18, 1.15, 0.73, 0.6, 0.52
+#LEANING 1.11, 0.76, 0.79, 0.62
+(s <- with(all_data_amended, 
+           summary(as.numeric(WORRIED) ~ 
+                     TRIAL + POLICE + AGE + LEANING, fun=sf)))
+
+#plot this
+#LEANING just about OK, rest aren't good
+s[, 4] <- s[, 4] - s[, 3]
+s[, 3] <- s[, 3] - s[, 3]
+plot(s, which=1:3, pch=1:3, xlab='logit', main=' ', xlim=range(s[,3:4]))
+
+#ordinal logistic regression model can't be used but here's the code
+
+#ordinal logistic regression model
+olr_model <- polr(WORRIED ~ LENIENCY + TRIAL + POLICE + LEANING + AGE,
+                  data = train, Hess = TRUE)
+
+#show coefficients, t-values, intercepts and deviance/AIC
+summary(olr_model)
+
+#confidence intervals
+#no sign change: LENIENCY 4, TRIAL L, POLICE L, AGE L
+(ci <- confint(olr_model))
+
+#get odds ratios
+exp(coef(olr_model))
+
+#check variance inflation factors, leniency/trial are too large
+vif(olr_model)
+vif(lm(as.numeric(WORRIED) ~ LENIENCY + TRIAL + POLICE + LEANING + AGE,
+         data = train))
+
+#OK with TRIAL removed
+vif(polr(WORRIED ~ LENIENCY  + POLICE + LEANING + AGE,
+       data = train, Hess = TRUE))
+vif(lm(as.numeric(WORRIED) ~ LENIENCY  + POLICE + LEANING + AGE,
+       data = train))
+
+
+#ordinal logistic regression model with no TRIAL
+olr_model_2 <- polr(WORRIED ~ LENIENCY + POLICE + LEANING + AGE,
+                  data = train, Hess = TRUE)
+
+#show coefficients, t-values, intercepts and deviance/AIC
+summary(olr_model_2)
+
+#confidence intervals
+#no sign change: LENIENCY.L, LENIENCY^4, POLICE.L
+(ci_2 <- confint(olr_model_2))
+
+#get odds ratios
+exp(coef(olr_model_2))
+
+#predict on test data
+olr_predicted <- predict(olr_model_2, test)
+
+#get classification matrix
+table(test$WORRIED, olr_predicted)
+
+#add predicted to new test dataframe for plotting
+olr_test <- test
+olr_test$PRED <- olr_predicted
+ggplot(data = olr_test, aes(x = WORRIED, fill = PRED)) +
+  geom_bar() +
+  theme_bw() +
+  labs(x = "Actual concern", fill = "Predicted concern")
+
+#64% accuracy 
+accuracy(olr_test, truth = WORRIED, estimate = PRED)
+
+#35% kappa
+kap(olr_test, truth = WORRIED, estimate = PRED)
 
