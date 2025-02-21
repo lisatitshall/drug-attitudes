@@ -581,9 +581,11 @@ View(tidy(fit) %>% filter(estimate != 0) %>% filter(term != "(Intercept)"))
 #this gives all coefficients on the regularization path
 #View(tidy(fit$fit))
 
+table(test_augment$WORRIED, test_augment$.pred_class)
+
 #60% accuracy on test set, 31% kappa (only fair)
 collect_metrics(test_results)
-kap(train_augment, truth = WORRIED, estimate = .pred_class)
+kap(test_augment, truth = WORRIED, estimate = .pred_class)
 
 #plot actual vs predicted
 test_results %>% 
@@ -594,13 +596,22 @@ test_results %>%
   labs(x = "Actual concern", fill = "Predicted concern")
 
 #look at predictions vs answers 
-train_augment <- augment(test_results) %>%
+test_augment <- augment(test_results) %>%
   relocate(WORRIED, .after = .pred_class) %>%
   relocate(LENIENCY, .after = WORRIED) %>%
   relocate(TRIAL, .after = LENIENCY) %>%
   relocate(POLICE, .after = TRIAL) %>%
   relocate(LEANING, .after = POLICE) %>%
   relocate(AGE, .after = LEANING)
+
+#plot best prediction against whether it was correct or not
+test_augment <- test_augment %>% 
+  mutate(best_pred = pmax(.pred_1,.pred_2,.pred_3)) %>%
+  mutate(correct = ifelse(.pred_class == WORRIED, TRUE, FALSE))
+
+
+plot(test_augment$best_pred, test_augment$correct)
+
 
 #To Do
 # try ordinal logistic regression with same variables as winning multinomial
