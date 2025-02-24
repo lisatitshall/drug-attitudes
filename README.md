@@ -41,6 +41,19 @@ Fisher Exact tests were conducted to test the relationship between demographics 
 
 Most Fisher Exact p-values were statistically significant at the 0.05 level (except gender). The Cramer V values showed a borderline weak/moderate relationship between drug policy and education level and moderate relationships between drug policy and age/political leaning. 
 
+Binary logistic regression was also conducted to look at the association between demographics and drug decriminalisation attitudes. To start neutral/not concerned responses were coded to 0 and concerned responses coded to 1. 
+
+The following screenshot shows the odds ratios compared to reference groups. We can see that:
+- Participants aged over 66 were 21 times more likely than 18-25 year olds to be concerned about drug decriminalisation
+- Participants with secondary school education were 5 times more likely than those with PhD's to be concerned about drug decriminalisation
+- Left wing partipicants were half as likely as non-political participants to be concerned about drug decriminalisation
+
+![image](https://github.com/user-attachments/assets/4bebda87-b3bb-4436-857b-9175526e95e0)
+
+The only statistically significant results when running this analysis were age groups: 46-55, 56-65 and 66+. The following chart shows the confidence intervals for the odds ratios (lower bounds in blue). The significant results correspond to the groups where the lower bound is above 1 (red dotted line on the chart). Note: 3 groups had a higher upper bound than 50 so the orange dot isn't present on the chart. 
+
+![image](https://github.com/user-attachments/assets/520d2cb2-351f-4166-9091-d99648199e2d)
+
 ### [3] Two dimensions are insufficient to describe survey data variation
 The following were the findings after conducting Multiple Correspondence Analysis:
 - 2 dimensions only explains 20% of the data variation
