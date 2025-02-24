@@ -12,6 +12,9 @@ library(bonsai)
 #ordinal linear regression
 library(MASS)
 library(Hmisc)
+#variance inflation factors
+library(car)
+
 #Data Notes
 # AGE:PARTY columns are demographics questions
 # HARDSOFT:MORALITY are 9 Likert questions (where 5 means favour decriminalisation)
@@ -731,4 +734,80 @@ accuracy(olr_test, truth = WORRIED, estimate = PRED)
 
 #35% kappa
 kap(olr_test, truth = WORRIED, estimate = PRED)
+
+#Ideas
+# Could we have two groups "concerned" and "not concerned" and look
+#   at the demographic association only? 
+# Are age/political leaning still significant when we include 
+#  education level (a socioeconomic factor)?
+
+#Binary logistic regression ---------------------------
+
+#smaller dataset with only demographics and concern
+all_data_amended_reduced_demographics_only <-
+  all_data_amended_reduced  %>% dplyr::select(GENDER, AGE, LEANING, 
+                                              EDUCATION, WORRIED)
+
+#check whether factors are ordered
+# in this case it's better for them not to be
+glimpse(all_data_amended_reduced_demographics_only)
+
+#un-order the age variable
+all_data_amended_reduced_demographics_only$AGE <- factor(
+  all_data_amended_reduced_demographics_only$AGE, ordered = FALSE)
+
+#change the order of education because we'd expect PhD's to be 
+# less concerned
+all_data_amended_reduced_demographics_only$EDUCATION <- factor(
+  all_data_amended_reduced_demographics_only$EDUCATION, 
+  levels = c("7", "6", "5", "4", "3"))
+
+#change neutral and no concern to 0
+all_data_amended_reduced_demographics_only$WORRIED <- case_when(
+  all_data_amended_reduced_demographics_only$WORRIED == "2" ~ 0,
+  all_data_amended_reduced_demographics_only$WORRIED == "3" ~ 0,
+  .default = 1)
+
+
+#binary logistic regression
+binary_model <- glm(WORRIED ~ EDUCATION + GENDER + AGE + LEANING, 
+                    family = "binomial",
+                    data = all_data_amended_reduced_demographics_only)
+
+#summary of coefficients
+# significant - AGE 4-6
+summary(binary_model)
+
+#odds ratios
+exp(binary_model$coefficients)
+
+#confidence intervals for plotting
+confidence_intervals <- exp(confint(binary_model))
+
+confidence_intervals <- data.frame(group = row.names(confidence_intervals),
+                                   confidence_intervals) %>%
+  rename("LowerBound" = "X2.5..") %>% rename("UpperBound" = "X97.5..")
+
+confidence_intervals$LowerBound <- round(confidence_intervals$LowerBound, 2) 
+confidence_intervals$UpperBound <- round(confidence_intervals$UpperBound, 2) 
+
+
+#lollipop of confidence intervals
+ggplot(data = confidence_intervals %>% filter(group != "(Intercept)")) + 
+  geom_segment(aes(x=group, y=LowerBound, 
+                   yend=ifelse(UpperBound < 50, UpperBound, 50)), 
+               color="grey") + 
+  geom_point( aes(x = group, y=LowerBound), col = "blue") + 
+  geom_point( aes(x = group, y=UpperBound), col = "orange" ) + 
+  coord_flip() +
+  ylim(0,50) +
+  geom_abline(intercept = 1, slope = 0, linewidth = 1, colour = "red",
+              lty = 2) +
+  theme_bw() +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Confidence intervals for group odds ratios"
+  )
+  
 
